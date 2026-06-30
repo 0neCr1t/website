@@ -1,0 +1,50 @@
+# build output
+dist/
+
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# deploy output (node adapter / hosting providers)
+.vercel/
+.netlify/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# caches
+.npm
+.eslintcache
+.cache/
+
+# environment variables
+.env
+.env.production
+.env.development
+.env.local
+.env.*.local
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor/IDE folders
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Optional: lock files (descomenta si no quieres incluirlos)
+# package-lock.json
+# pnpm-lock.yaml
+# yarn.lock

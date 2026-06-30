@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* Theme tokens. Light is the default; `body.dark` flips them. */
+:root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f0f0f0;
+    --text-color: #1a1a1a;
+    /* TODO: define your palette */
+}
+
+body.dark {
+    --bg-primary: #161616;
+    --bg-secondary: #242424;
+    --text-color: #f5f5f5;
+    /* TODO: define your dark palette */
+}
+
+/* astro-icon renders inline SVGs; keep them aligned with the text baseline. */
+svg[data-icon] {
+    display: inline-block;
+    vertical-align: -0.125em;
+}

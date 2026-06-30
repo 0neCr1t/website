@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Tooling / agent skills (kept as authored)
+.claude/
+
+# Build output
+dist/
+.astro/
+.vercel/
+.netlify/
+
+# Generated / lockfiles
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lockb
+
+# Logs & misc
+*.log
+.DS_Store
