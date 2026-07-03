@@ -57,7 +57,8 @@ const ogImageURL = new URL(ogImage, Astro.site);
         <slot name="head" />
     </head>
 
-    <body class="bg-(--bg-primary) text-(--text-color) transition-colors duration-300">
+    <!-- The site is dark-themed by default; drop the class here when a theme toggle lands. -->
+    <body class="dark bg-(--bg-primary) text-(--text-color) transition-colors duration-300">
         <slot />
 
         <script>

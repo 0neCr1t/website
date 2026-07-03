@@ -1,0 +1,42 @@
+---
+// Annotation for a single input/output node: a small arrow showing data direction
+// plus the feature/head name. Inputs point into the node from the left; outputs
+// point away from it to the right.
+
+interface Props {
+    cx: number;
+    cy: number;
+    nodeRadius: number;
+    arrowLength: number;
+    direction: "in" | "out";
+    label: string;
+    markerId: string;
+}
+
+const { cx, cy, nodeRadius, arrowLength, direction, label, markerId } = Astro.props;
+
+const gap = 5;
+const x1 = direction === "in" ? cx - nodeRadius - gap - arrowLength : cx + nodeRadius + gap;
+const x2 = x1 + arrowLength;
+const textX = direction === "in" ? x1 - 7 : x2 + 7;
+---
+
+<g>
+    <line
+        x1={x1}
+        y1={cy}
+        x2={x2}
+        y2={cy}
+        class="stroke-(--graph-muted)"
+        stroke-width="1.3"
+        marker-end={`url(#${markerId})`}></line>
+    <text
+        x={textX}
+        y={cy}
+        dominant-baseline="middle"
+        text-anchor={direction === "in" ? "end" : "start"}
+        class="fill-(--text-color) text-[11px]"
+    >
+        {label}
+    </text>
+</g>

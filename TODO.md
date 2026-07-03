@@ -2,6 +2,11 @@
 
 Pending setup tasks for this fresh template. Delete each line once done.
 
+## Follow-ups
+
+- [ ] `/prueba-graph` is a throwaway demo of `NetworkDiagram` — remove it (page + `components/pages/PruebaGraph.astro`) once the diagram is integrated into a real page.
+- [ ] The site is dark-themed by default via a hardcoded `dark` class on `<body>` (`BaseLayout.astro`) — replace with a proper theme toggle when one lands.
+
 ## Assets (not shipped with the template — create these)
 
 - [ ] `public/imgs/favicon/favicon.ico`

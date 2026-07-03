@@ -1,0 +1,88 @@
+---
+// Demo composition for /prueba-graph: the VGC network defined in model/network
+// (PokemonEncoder → BattleTransformer → PolicyHead + ValueHead), centered and alone.
+
+import type { NetworkConnection, NetworkLayerConfig } from "../../lib/network-diagram";
+import NetworkDiagram from "../ui/graph/NetworkDiagram.astro";
+
+const layers: NetworkLayerConfig[] = [
+    {
+        id: "state",
+        label: "Battle state",
+        sublabel: "per Pokémon ×4 + field",
+        role: "input",
+        nodes: 7,
+        column: 0,
+        nodeLabels: ["Species ×4", "HP %", "Status (7)", "Boosts (5)", "Item known", "Ability known", "Field (14)"],
+    },
+    {
+        id: "encoder",
+        label: "PokemonEncoder",
+        sublabel: "Linear 79→128 · ReLU · LayerNorm",
+        nodes: 128,
+        column: 1,
+    },
+    {
+        id: "transformer",
+        label: "BattleTransformer",
+        sublabel: "4 × encoder layers · 4 heads · d=128",
+        nodes: 128,
+        column: 2,
+    },
+    {
+        id: "policy",
+        label: "PolicyHead",
+        sublabel: "Linear 128→128 · ReLU",
+        nodes: 128,
+        column: 3,
+    },
+    {
+        id: "value",
+        label: "ValueHead",
+        sublabel: "Linear 512→128→64 · ReLU",
+        nodes: 64,
+        column: 3,
+    },
+    {
+        id: "moves",
+        label: "move_logits",
+        role: "output",
+        nodes: 4,
+        column: 4,
+        nodeLabels: ["Move 1", "Move 2", "Move 3", "Move 4"],
+    },
+    {
+        id: "targets",
+        label: "target_logits",
+        role: "output",
+        nodes: 2,
+        column: 4,
+        nodeLabels: ["Rival left", "Rival right"],
+    },
+    {
+        id: "win",
+        label: "value",
+        role: "output",
+        nodes: 1,
+        column: 4,
+        nodeLabels: ["Win probability"],
+    },
+];
+
+// The heads branch after the transformer, so the default column-to-column
+// wiring doesn't apply: policy feeds moves/targets, value feeds the win output.
+const connections: NetworkConnection[] = [
+    { from: "state", to: "encoder" },
+    { from: "encoder", to: "transformer" },
+    { from: "transformer", to: "policy" },
+    { from: "transformer", to: "value" },
+    { from: "policy", to: "moves" },
+    { from: "policy", to: "targets" },
+    { from: "value", to: "win" },
+];
+---
+
+<main class="grid min-h-screen place-items-center p-6">
+    {/* Wider columns so the long sublabels (Linear dims, transformer config) don't collide. */}
+    <NetworkDiagram title="VGCNetwork" layers={layers} connections={connections} options={{ columnGap: 250 }} />
+</main>

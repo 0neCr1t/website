@@ -1,0 +1,45 @@
+---
+// A single neuron: a flat circle in the role color over an LED-like halo
+// (a radial gradient pool of light, only lit on the dark theme), or the
+// vertical-dots marker when the layer is collapsed. The --nn-col/--nn-row
+// vars drive the staggered entry animation (see NetworkDiagram).
+
+import type { LayerRole } from "../../../lib/network-diagram";
+
+interface Props {
+    cx: number;
+    cy: number;
+    r: number;
+    role: LayerRole;
+    ellipsis?: boolean;
+    diagramId: string;
+    layerId: string;
+    column: number;
+    row: number;
+}
+
+const { cx, cy, r, role, ellipsis = false, diagramId, layerId, column, row } = Astro.props;
+
+const roleFill: Record<LayerRole, string> = {
+    input: "fill-(--graph-node-input)",
+    hidden: "fill-(--graph-node-hidden)",
+    output: "fill-(--graph-node-output)",
+};
+
+const stagger = `--nn-col: ${column}; --nn-row: ${row}`;
+---
+
+{
+    ellipsis ? (
+        <g class="nn-node fill-(--graph-muted)" style={stagger}>
+            <circle cx={cx} cy={cy - 6} r={1.6} />
+            <circle cx={cx} cy={cy} r={1.6} />
+            <circle cx={cx} cy={cy + 6} r={1.6} />
+        </g>
+    ) : (
+        <g class="nn-node" style={stagger} data-node={`${layerId}:${row}`} data-role={role}>
+            <circle class="nn-halo" cx={cx} cy={cy} r={r * 2.4} fill={`url(#${diagramId}-halo-${role})`} />
+            <circle cx={cx} cy={cy} r={r} class={roleFill[role]} />
+        </g>
+    )
+}

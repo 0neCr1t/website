@@ -1,0 +1,91 @@
+---
+// One layer of the network: its column of nodes, a pill with the layer name
+// (and optional sublabel) under it, and IO annotations when the layer declares
+// node labels.
+
+import type { PositionedLayer } from "../../../lib/network-diagram";
+import DiagramNode from "./DiagramNode.astro";
+import DiagramIOLabel from "./DiagramIOLabel.astro";
+
+interface Props {
+    layer: PositionedLayer;
+    nodeRadius: number;
+    ioArrowLength: number;
+    markerId: string;
+    diagramId: string;
+}
+
+const { layer, nodeRadius, ioArrowLength, markerId, diagramId } = Astro.props;
+
+const annotated = layer.role === "hidden" ? [] : layer.nodes.filter(n => !n.ellipsis && n.label);
+const stagger = `--nn-col: ${layer.columnRank}`;
+
+// Pill sizing from an estimated glyph width (12px semibold ≈ 6.9px/char).
+const pillText = layer.collapsed ? `${layer.label} ×${layer.totalNodes}` : layer.label;
+const pillWidth = Math.round(pillText.length * 6.9 + 26);
+const pillHeight = 22;
+---
+
+<g>
+    {
+        layer.nodes.map((node, row) => (
+            <DiagramNode
+                cx={node.cx}
+                cy={node.cy}
+                r={nodeRadius}
+                role={layer.role}
+                ellipsis={node.ellipsis}
+                diagramId={diagramId}
+                layerId={layer.id}
+                column={layer.columnRank}
+                row={row}
+            />
+        ))
+    }
+
+    <g class="nn-annotation" style={stagger}>
+        {
+            annotated.map(node => (
+                <DiagramIOLabel
+                    cx={node.cx}
+                    cy={node.cy}
+                    nodeRadius={nodeRadius}
+                    arrowLength={ioArrowLength}
+                    direction={layer.role === "output" ? "out" : "in"}
+                    label={node.label!}
+                    markerId={markerId}
+                />
+            ))
+        }
+
+        <rect
+            x={layer.labelX - pillWidth / 2}
+            y={layer.labelY - 15}
+            width={pillWidth}
+            height={pillHeight}
+            rx={pillHeight / 2}
+            class="fill-(--bg-primary) stroke-(--graph-border)"
+            stroke-width="1"></rect>
+        <text
+            x={layer.labelX}
+            y={layer.labelY}
+            text-anchor="middle"
+            class="fill-(--text-color) text-[12px] font-semibold"
+        >
+            {layer.label}
+            {layer.collapsed && <tspan class="fill-(--graph-muted) font-medium">&nbsp;×{layer.totalNodes}</tspan>}
+        </text>
+        {
+            layer.sublabel && (
+                <text
+                    x={layer.labelX}
+                    y={layer.labelY + 19}
+                    text-anchor="middle"
+                    class="fill-(--graph-muted) font-mono text-[10px]"
+                >
+                    {layer.sublabel}
+                </text>
+            )
+        }
+    </g>
+</g>
