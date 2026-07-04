@@ -114,38 +114,6 @@ const roles: LayerRole[] = ["input", "hidden", "output"];
     {showLegend && <DiagramLegend items={legendItems} />}
 </figure>
 
-<script>
-    // Node hover → light up the edges touching that node in its role color.
-    const LIT_CLASSES = ["nn-edge-lit", "nn-lit-input", "nn-lit-hidden", "nn-lit-output"];
-
-    document.querySelectorAll<SVGSVGElement>("svg[data-nn-diagram]").forEach(svg => {
-        let lit: Element[] = [];
-
-        const clear = () => {
-            lit.forEach(path => path.classList.remove(...LIT_CLASSES));
-            lit = [];
-            svg.classList.remove("nn-hovering");
-        };
-
-        svg.addEventListener("pointerover", event => {
-            const node = (event.target as Element).closest("[data-node]");
-            if (!node) return;
-            clear();
-            const key = node.getAttribute("data-node")!;
-            const role = node.getAttribute("data-role")!;
-            lit = [...svg.querySelectorAll(`[data-from="${CSS.escape(key)}"], [data-to="${CSS.escape(key)}"]`)];
-            lit.forEach(path => path.classList.add("nn-edge-lit", `nn-lit-${role}`));
-            if (lit.length) svg.classList.add("nn-hovering");
-        });
-
-        svg.addEventListener("pointerout", event => {
-            const node = (event.target as Element).closest("[data-node]");
-            if (!node || (event.relatedTarget && node.contains(event.relatedTarget as Node))) return;
-            clear();
-        });
-    });
-</script>
-
 <style is:global>
     /* Node-editor style dotted canvas. */
     .nn-diagram .nn-canvas {
@@ -153,9 +121,15 @@ const roles: LayerRole[] = ["input", "hidden", "output"];
         background-size: 18px 18px;
     }
 
+    /* Entry animation (scale/opacity, staggered by data-col/data-row) is driven
+       by animejs from src/scripts/network-diagram.ts; it adds `nn-ready` to the
+       svg when done, which enables the hover transition below. */
     .nn-diagram .nn-node {
         transform-box: fill-box;
         transform-origin: center;
+    }
+
+    .nn-diagram svg.nn-ready .nn-node {
         transition: transform 0.2s ease;
     }
 
@@ -192,33 +166,5 @@ const roles: LayerRole[] = ["input", "hidden", "output"];
     }
     body.dark .nn-diagram .nn-halo {
         opacity: 1;
-    }
-
-    /* One-shot entry: edges fade in, nodes pop in staggered by column then row. */
-    @media (prefers-reduced-motion: no-preference) {
-        .nn-diagram .nn-edges {
-            animation: nn-fade-in 0.9s ease-out 0.15s backwards;
-        }
-        .nn-diagram .nn-node {
-            animation: nn-node-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-            animation-delay: calc(var(--nn-col, 0) * 110ms + var(--nn-row, 0) * 28ms);
-        }
-        .nn-diagram .nn-annotation {
-            animation: nn-fade-in 0.5s ease-out backwards;
-            animation-delay: calc(var(--nn-col, 0) * 110ms + 250ms);
-        }
-    }
-
-    @keyframes nn-node-in {
-        from {
-            opacity: 0;
-            transform: scale(0.3);
-        }
-    }
-
-    @keyframes nn-fade-in {
-        from {
-            opacity: 0;
-        }
     }
 </style>

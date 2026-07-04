@@ -18,7 +18,6 @@ interface Props {
 const { layer, nodeRadius, ioArrowLength, markerId, diagramId } = Astro.props;
 
 const annotated = layer.role === "hidden" ? [] : layer.nodes.filter(n => !n.ellipsis && n.label);
-const stagger = `--nn-col: ${layer.columnRank}`;
 
 // Pill sizing from an estimated glyph width (12px semibold ≈ 6.9px/char).
 const pillText = layer.collapsed ? `${layer.label} ×${layer.totalNodes}` : layer.label;
@@ -43,7 +42,7 @@ const pillHeight = 22;
         ))
     }
 
-    <g class="nn-annotation" style={stagger}>
+    <g class="nn-annotation" data-col={layer.columnRank}>
         {
             annotated.map(node => (
                 <DiagramIOLabel
