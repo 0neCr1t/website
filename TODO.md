@@ -24,7 +24,7 @@ Pending setup tasks for this fresh template. Delete each line once done.
 - [ ] Implement the home page (`src/pages/index.astro`).
 - [ ] Implement the 404 page (`src/pages/404.astro`).
 - [ ] Flesh out the SEO helpers (`src/lib/seo.ts`).
-- [ ] Define your content collections (`src/content.config.ts`).
+- [x] Define your content collections (`src/content.config.ts`).
 - [ ] Wire up client scripts (`src/scripts/main.ts`).
 
 ## Icons (when you need them)

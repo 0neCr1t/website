@@ -1,14 +1,13 @@
 ---
 // Test route: NetworkDiagram demo. Not meant to be indexed.
 
+import { getEntry } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import PruebaGraph from "../components/pages/PruebaGraph.astro";
+
+const { title, description, noindex } = (await getEntry("pages", "prueba-graph")).data;
 ---
 
-<BaseLayout
-    title="Prueba: diagrama de red"
-    description="Demostración del componente NetworkDiagram con la red VGC."
-    noindex
->
+<BaseLayout title={title} description={description} noindex={noindex}>
     <PruebaGraph />
 </BaseLayout>
