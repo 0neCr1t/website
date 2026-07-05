@@ -5,6 +5,7 @@ Pending setup tasks for this fresh template. Delete each line once done.
 ## Follow-ups
 
 - [ ] `/prueba-graph` is a throwaway demo of `NetworkDiagram` — remove it (page + `components/pages/PruebaGraph.astro`) once the diagram is integrated into a real page.
+- [ ] `/arquitecturas-v2` shows the three candidate v2 architectures for the design tournament — once a winner is picked and implemented in `model`, keep only the winning diagram (or fold it into a real page) and drop the rest.
 - [ ] The site is dark-themed by default via a hardcoded `dark` class on `<body>` (`BaseLayout.astro`) — replace with a proper theme toggle when one lands.
 
 ## Assets (not shipped with the template — create these)

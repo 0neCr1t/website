@@ -1,0 +1,443 @@
+---
+// /arquitecturas-v2: the three candidate v2 architectures for the design
+// tournament. All three share the v2 stem (Pokémon/field tokens → transformer
+// trunk, per model/docs/io-spec.md) and differ only in how the turn decision
+// (move + target + tera + switch, for both ally slots) is distributed into
+// output heads — which is the axis the tournament wants to measure.
+
+import type { NetworkConnection, NetworkLayerConfig } from "../../lib/network-diagram";
+import NetworkDiagram from "../ui/graph/NetworkDiagram.astro";
+
+interface Props {
+    heading: string;
+}
+
+const { heading } = Astro.props;
+
+// Shared stem (columns 0-2), identical in the three candidates so the diagrams
+// only differ where the designs actually differ: the decision heads.
+const baseLayers: NetworkLayerConfig[] = [
+    {
+        id: "tokens",
+        label: "Tokens Pokémon",
+        sublabel: "×≤8 · 247 features/token · ausentes → máscara",
+        role: "input",
+        nodes: 9,
+        column: 0,
+        nodeLabels: [
+            "Species emb (64)",
+            "Tipos (18)",
+            "Stats base (6)",
+            "Item ⊕ conocido",
+            "Ability ⊕ conocida",
+            "Moves pool ⊕ ocultos",
+            "Tera ⊕ flags",
+            "HP · status · boosts",
+            "Rol · lado · slot",
+        ],
+    },
+    {
+        id: "campo",
+        label: "Campo",
+        sublabel: "36 features · Tier 2 a cero hasta el parser",
+        role: "input",
+        nodes: 8,
+        column: 0,
+        nodeLabels: [
+            "Clima (6)",
+            "Terreno (5)",
+            "TR · Tailwind (3)",
+            "Rivales ocultos (1)",
+            "Turno (1)",
+            "Pantallas (6)",
+            "Hazards (8)",
+            "Turnos rest. (5)",
+        ],
+    },
+    {
+        id: "token-enc",
+        label: "TokenEncoder",
+        sublabel: "Linear 247→192 · GELU · LayerNorm",
+        nodes: 192,
+        column: 1,
+    },
+    {
+        id: "field-enc",
+        label: "FieldEncoder",
+        sublabel: "Linear 36→192 · token extra",
+        nodes: 192,
+        column: 1,
+    },
+    {
+        id: "trunk",
+        label: "Trunk Transformer",
+        sublabel: "emb posición-rol · 4× (MHA 6h · FFN 768 · GELU) · key-padding mask",
+        nodes: 192,
+        column: 2,
+    },
+];
+
+const baseConnections: NetworkConnection[] = [
+    { from: "tokens", to: "token-enc" },
+    { from: "campo", to: "field-enc" },
+    { from: "token-enc", to: "trunk" },
+    { from: "field-enc", to: "trunk" },
+];
+
+// Illustrative labels for a dynamic legal-action distribution (design A): the
+// real logit count changes every turn, so the nodes stand for action kinds.
+const dynamicActionLabels = [
+    "Mov m → rival L",
+    "Mov m → rival R",
+    "Mov m → aliado",
+    "Mov m + Tera → …",
+    "Switch → banq. 1",
+    "Switch → banq. 2",
+];
+
+// ── Diseño A · ActionScorer autoregresivo (nominal de la io-spec) ────────────
+const designALayers: NetworkLayerConfig[] = [
+    ...baseLayers,
+    {
+        id: "scorer-1",
+        label: "ActionScorer · slot 1",
+        sublabel: "[actor ⊕ emb mov ⊕ target ⊕ calc] → MLP 445→256→1",
+        nodes: 256,
+        column: 3,
+    },
+    {
+        id: "value-a",
+        label: "ValueHead",
+        sublabel: "attn pooling · 192→96→1",
+        nodes: 96,
+        column: 3,
+    },
+    {
+        id: "scorer-2",
+        label: "ActionScorer · slot 2",
+        sublabel: "mismos pesos + emb de la acción elegida en slot 1",
+        nodes: 256,
+        column: 4,
+    },
+    {
+        id: "out-a-1",
+        label: "π slot 1",
+        sublabel: "softmax sobre n legales (≈ 8–35)",
+        role: "output",
+        nodes: 6,
+        column: 5,
+        nodeLabels: dynamicActionLabels,
+    },
+    {
+        id: "out-a-2",
+        label: "π slot 2",
+        sublabel: "softmax sobre n legales (≈ 8–35)",
+        role: "output",
+        nodes: 6,
+        column: 5,
+        nodeLabels: dynamicActionLabels,
+    },
+    {
+        id: "win-a",
+        label: "value",
+        sublabel: "win logit (pre-sigmoide)",
+        role: "output",
+        nodes: 1,
+        column: 5,
+        nodeLabels: ["Win logit"],
+    },
+];
+
+const designAConnections: NetworkConnection[] = [
+    ...baseConnections,
+    { from: "trunk", to: "scorer-1" },
+    { from: "trunk", to: "scorer-2" },
+    { from: "trunk", to: "value-a" },
+    { from: "scorer-1", to: "scorer-2" },
+    { from: "scorer-1", to: "out-a-1" },
+    { from: "scorer-2", to: "out-a-2" },
+    { from: "value-a", to: "win-a" },
+];
+
+// ── Diseño B · Softmax conjunto fijo, slots independientes ──────────────────
+// Fixed action space per slot: 4 moves × 4 targets × 2 (tera) + 3 switches = 35.
+const jointActionLabels: string[] = [];
+jointActionLabels[0] = "Mov 1 → rival L";
+jointActionLabels[1] = "Mov 1 → rival R";
+jointActionLabels[2] = "Mov 1 → aliado";
+jointActionLabels[3] = "Mov 1 → área";
+jointActionLabels[31] = "Mov 4 + Tera → área";
+jointActionLabels[32] = "Switch → banq. 1";
+jointActionLabels[33] = "Switch → banq. 2";
+jointActionLabels[34] = "Switch → banq. 3";
+
+const designBLayers: NetworkLayerConfig[] = [
+    ...baseLayers,
+    {
+        id: "joint-1",
+        label: "JointHead · slot 1",
+        sublabel: "token slot → MLP 192→256→35 · máscara de legales",
+        nodes: 256,
+        column: 3,
+    },
+    {
+        id: "joint-2",
+        label: "JointHead · slot 2",
+        sublabel: "mismos pesos, aplicado al token del slot 2",
+        nodes: 256,
+        column: 3,
+    },
+    {
+        id: "value-b",
+        label: "ValueHead",
+        sublabel: "attn pooling · 192→96→1",
+        nodes: 96,
+        column: 3,
+    },
+    {
+        id: "out-b-1",
+        label: "π slot 1",
+        sublabel: "35 fijos: 4 mov × 4 targets × Tera + 3 switch",
+        role: "output",
+        nodes: 35,
+        column: 4,
+        nodeLabels: jointActionLabels,
+    },
+    {
+        id: "out-b-2",
+        label: "π slot 2",
+        sublabel: "35 fijos: 4 mov × 4 targets × Tera + 3 switch",
+        role: "output",
+        nodes: 35,
+        column: 4,
+        nodeLabels: jointActionLabels,
+    },
+    {
+        id: "win-b",
+        label: "value",
+        sublabel: "win logit (pre-sigmoide)",
+        role: "output",
+        nodes: 1,
+        column: 4,
+        nodeLabels: ["Win logit"],
+    },
+];
+
+const designBConnections: NetworkConnection[] = [
+    ...baseConnections,
+    { from: "trunk", to: "joint-1" },
+    { from: "trunk", to: "joint-2" },
+    { from: "trunk", to: "value-b" },
+    { from: "joint-1", to: "out-b-1" },
+    { from: "joint-2", to: "out-b-2" },
+    { from: "value-b", to: "win-b" },
+];
+
+// ── Diseño C · Factorizado jerárquico con punteros ──────────────────────────
+// Every head runs once per ally slot (×2); collapse threshold lowered so five
+// stacked head layers fit in one column without a huge diagram.
+const cHead = { column: 3, maxVisibleNodes: 5 } as const;
+
+const designCLayers: NetworkLayerConfig[] = [
+    ...baseLayers,
+    { id: "act-head", label: "AcciónHead ×2", sublabel: "mover / cambiar · 192→64→2", nodes: 64, ...cHead },
+    {
+        id: "move-head",
+        label: "MoveHead ×2",
+        sublabel: "puntero: [actor ⊕ emb mov] → logit · + flag Tera",
+        nodes: 64,
+        ...cHead,
+    },
+    {
+        id: "target-head",
+        label: "TargetHead ×2",
+        sublabel: "condicionado al mov elegido · 4 targets",
+        nodes: 64,
+        ...cHead,
+    },
+    { id: "switch-head", label: "SwitchHead ×2", sublabel: "puntero a tokens del banquillo", nodes: 64, ...cHead },
+    { id: "value-c", label: "ValueHead", sublabel: "attn pooling · 192→96→1", nodes: 96, ...cHead },
+    {
+        id: "out-act",
+        label: "acción",
+        sublabel: "2 slots × {mover, cambiar}",
+        role: "output",
+        nodes: 4,
+        column: 4,
+        nodeLabels: ["S1 · mover", "S1 · cambiar", "S2 · mover", "S2 · cambiar"],
+    },
+    {
+        id: "out-move",
+        label: "movimiento",
+        sublabel: "2 slots × 4 movs conocidos (+ flag Tera)",
+        role: "output",
+        nodes: 8,
+        column: 4,
+        nodeLabels: [
+            "S1 · Mov 1",
+            "S1 · Mov 2",
+            "S1 · Mov 3",
+            "S1 · Mov 4",
+            "S2 · Mov 1",
+            "S2 · Mov 2",
+            "S2 · Mov 3",
+            "S2 · Mov 4",
+        ],
+    },
+    {
+        id: "out-target",
+        label: "target",
+        sublabel: "2 slots × 4 targets",
+        role: "output",
+        nodes: 8,
+        column: 4,
+        nodeLabels: [
+            "S1 → rival L",
+            "S1 → rival R",
+            "S1 → aliado",
+            "S1 → área",
+            "S2 → rival L",
+            "S2 → rival R",
+            "S2 → aliado",
+            "S2 → área",
+        ],
+    },
+    {
+        id: "out-switch",
+        label: "cambio",
+        sublabel: "2 slots × banquillo vivo",
+        role: "output",
+        nodes: 4,
+        column: 4,
+        nodeLabels: ["S1 → banq. 1", "S1 → banq. 2", "S2 → banq. 1", "S2 → banq. 2"],
+    },
+    {
+        id: "win-c",
+        label: "value",
+        sublabel: "win logit (pre-sigmoide)",
+        role: "output",
+        nodes: 1,
+        column: 4,
+        nodeLabels: ["Win logit"],
+    },
+];
+
+const designCConnections: NetworkConnection[] = [
+    ...baseConnections,
+    { from: "trunk", to: "act-head" },
+    { from: "trunk", to: "move-head" },
+    { from: "trunk", to: "target-head" },
+    { from: "trunk", to: "switch-head" },
+    { from: "trunk", to: "value-c" },
+    { from: "act-head", to: "out-act" },
+    { from: "move-head", to: "out-move" },
+    { from: "target-head", to: "out-target" },
+    { from: "switch-head", to: "out-switch" },
+    { from: "value-c", to: "win-c" },
+];
+---
+
+<main class="flex min-h-screen flex-col items-center gap-14 p-6">
+    <header class="flex max-w-3xl flex-col gap-3 pt-6 text-center">
+        <h1 class="text-2xl font-bold text-(--text-color)">{heading}</h1>
+        <p class="text-sm text-(--graph-muted)">
+            Los tres candidatos comparten el tronco v2 (tokens Pokémon + token de campo → transformer con masking) y se
+            diferencian únicamente en cómo reparten la decisión del turno — movimiento, target, Tera y switch de los dos
+            slots aliados — entre los outputs. Ese es el eje que el torneo de diseños debe medir: mismo tronco, distinta
+            cabeza.
+        </p>
+    </header>
+
+    <section class="flex w-full flex-col items-center gap-4">
+        <NetworkDiagram
+            id="diseno-a"
+            title="Diseño A · ActionScorer autoregresivo"
+            layers={designALayers}
+            connections={designAConnections}
+            options={{ columnGap: 280 }}
+        />
+        <ul class="max-w-3xl list-disc space-y-1 pl-5 text-sm text-(--graph-muted)">
+            <li>
+                Un único MLP puntúa <em>cada acción legal</em> construida dinámicamente (movimiento×target, variantes con
+                Tera y switches): el nº de logits cambia por turno y una acción ilegal jamás entra en la distribución.
+            </li>
+            <li>
+                Autoregresivo: la arista <code>slot 1 → slot 2</code> transporta la codificación de la acción{" "}
+                <em>elegida</em> (argmax/muestreo; en entrenamiento, la real del replay). Captura coordinación: no doble Protect,
+                no sobrematar al mismo rival.
+            </li>
+            <li>
+                El movimiento se identifica por su embedding, no por posición de slot — generaliza entre Pokémon. Es la
+                configuración nominal de la io-spec.
+            </li>
+        </ul>
+    </section>
+
+    <section class="flex w-full flex-col items-center gap-4">
+        <NetworkDiagram
+            id="diseno-b"
+            title="Diseño B · Softmax conjunto fijo"
+            layers={designBLayers}
+            connections={designBConnections}
+            options={{ columnGap: 320 }}
+        />
+        <ul class="max-w-3xl list-disc space-y-1 pl-5 text-sm text-(--graph-muted)">
+            <li>
+                Espacio de acciones enumerado y fijo por slot: 4 movimientos × 4 targets × 2 (Tera) + 3 switches = 35
+                logits, con máscara de ilegales antes del softmax. El mismo MLP se aplica al token de cada slot.
+            </li>
+            <li>
+                Slots independientes: la coordinación entre compañeros solo llega implícitamente vía el transformer. Es
+                el candidato más simple — sirve de <em>control</em> del torneo.
+            </li>
+            <li>
+                Limitación conocida: “Mov 1” es posicional (no sabe qué movimiento es), como en la v1 — el torneo mide
+                cuánto cuesta exactamente esa carencia.
+            </li>
+        </ul>
+    </section>
+
+    <section class="flex w-full flex-col items-center gap-4">
+        <NetworkDiagram
+            id="diseno-c"
+            title="Diseño C · Factorizado jerárquico con punteros"
+            layers={designCLayers}
+            connections={designCConnections}
+            options={{ columnGap: 320 }}
+        />
+        <ul class="max-w-3xl list-disc space-y-1 pl-5 text-sm text-(--graph-muted)">
+            <li>
+                La decisión se descompone en sub-heads por slot: P(acción) = P(mover/cambiar) · [P(movimiento) ·
+                P(target | movimiento) ó P(banquillo)]. Menos logits por decisión, pero asume independencias que el
+                diseño A no asume.
+            </li>
+            <li>
+                <code>MoveHead</code> y <code>SwitchHead</code> son <em>punteros</em>: puntúan embeddings de movimiento
+                y tokens de banquillo — conservan identidad (como A) sin pagar la autoregresión.
+            </li>
+            <li>
+                <code>TargetHead</code> se condiciona al movimiento elegido concatenando su embedding (la jerarquía no se
+                dibuja entre columnas: ambos heads cuelgan del tronco).
+            </li>
+        </ul>
+    </section>
+
+    <section class="flex max-w-3xl flex-col gap-2 pb-10">
+        <h2 class="text-lg font-semibold text-(--text-color)">Cómo leerlos de cara al torneo</h2>
+        <ul class="list-disc space-y-1 pl-5 text-sm text-(--graph-muted)">
+            <li>
+                <strong>A</strong> es la apuesta con mejor techo (identidad + legalidad + coordinación) y la más costosa de
+                implementar; <strong>B</strong> es la base simple que todo torneo necesita como control;
+                <strong>C</strong> es el punto intermedio: identidad de movimientos sin autoregresión.
+            </li>
+            <li>
+                Para singles, A y C sirven tal cual (desaparecen la dimensión de target y la autoregresión); B necesita
+                re-dimensionar su espacio fijo (4 movs × Tera + 5 switches = 13).
+            </li>
+            <li>
+                Si B ≈ C en el benchmark, la identidad de movimiento aporta poco con el dataset actual; si C ≈ A, la
+                autoregresión no compensa — cada comparación responde una pregunta de diseño concreta.
+            </li>
+        </ul>
+    </section>
+</main>

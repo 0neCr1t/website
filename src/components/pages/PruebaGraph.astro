@@ -147,17 +147,17 @@ const connections: NetworkConnection[] = [
         {/* Fine print the node-link view can't express. */}
         <ul class="max-w-3xl list-disc space-y-1 pl-5 text-sm text-(--graph-muted)">
             <li>
-                El transformer procesa la secuencia <code>[field, ally 0, ally 1, rival 0, rival 1]</code> con
-                positional encoding sinusoidal y descarta el token de campo a la salida (5 tokens → 4).
+                El transformer procesa la secuencia <code>[field, ally 0, ally 1, rival 0, rival 1]</code> con positional
+                encoding sinusoidal y descarta el token de campo a la salida (5 tokens → 4).
             </li>
             <li>
                 <code>move_head</code> y <code>target_head</code> son dos MLPs independientes dentro de{" "}
-                <code>PolicyHead</code> y solo leen los 2 tokens aliados; <code>ValueHead</code> concatena los 4
-                tokens (512) y aplica <code>512→128→64→1</code> con ReLU entre capas.
+                <code>PolicyHead</code> y solo leen los 2 tokens aliados; <code>ValueHead</code> concatena los 4 tokens (512)
+                y aplica <code>512→128→64→1</code> con ReLU entre capas.
             </li>
             <li>
-                Cada bloque oculto muestra su dimensión por token (<code>d=128</code>); <code>value</code> es un
-                logit, la probabilidad de victoria se obtiene tras la sigmoide.
+                Cada bloque oculto muestra su dimensión por token (<code>d=128</code>); <code>value</code> es un logit, la
+                probabilidad de victoria se obtiene tras la sigmoide.
             </li>
         </ul>
     </div>
