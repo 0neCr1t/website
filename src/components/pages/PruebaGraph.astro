@@ -1,88 +1,164 @@
 ---
-// Demo composition for /prueba-graph: the VGC network defined in model/network
-// (PokemonEncoder → BattleTransformer → PolicyHead + ValueHead), centered and alone.
+// Demo composition for /prueba-graph: faithful rendering of the VGC network
+// defined in model/network. Two input branches (the Pokémon features go through
+// PokemonEncoder; the field features skip it and enter BattleTransformer as an
+// extra token via field_proj), then the transformer feeds three parallel heads:
+// the two PolicyHead MLPs (move_head / target_head, ally tokens only) and ValueHead.
 
 import type { NetworkConnection, NetworkLayerConfig } from "../../lib/network-diagram";
 import NetworkDiagram from "../ui/graph/NetworkDiagram.astro";
 
 const layers: NetworkLayerConfig[] = [
     {
-        id: "state",
-        label: "Battle state",
-        sublabel: "per Pokémon ×4 + field",
+        id: "pokemon",
+        label: "Pokémon features",
+        sublabel: "×4 active · 2 ally + 2 rival",
         role: "input",
-        nodes: 7,
+        nodes: 6,
         column: 0,
-        nodeLabels: ["Species ×4", "HP %", "Status (7)", "Boosts (5)", "Item known", "Ability known", "Field (14)"],
+        nodeLabels: ["Species idx", "HP %", "Status (7)", "Boosts (5)", "Item known", "Ability known"],
+    },
+    {
+        id: "field",
+        label: "Field features",
+        sublabel: "weather (6) ⊕ terrain (5) ⊕ 3 flags",
+        role: "input",
+        nodes: 14,
+        maxVisibleNodes: 15,
+        column: 0,
+        nodeLabels: [
+            "Sun",
+            "Rain",
+            "Sand",
+            "Hail",
+            "Snow",
+            "Weather other",
+            "Electric terrain",
+            "Grassy terrain",
+            "Misty terrain",
+            "Psychic terrain",
+            "Terrain other",
+            "Trick Room",
+            "Tailwind ally",
+            "Tailwind rival",
+        ],
     },
     {
         id: "encoder",
         label: "PokemonEncoder",
-        sublabel: "Linear 79→128 · ReLU · LayerNorm",
+        sublabel: "SpeciesEmb 64 ⊕ 15 · Linear 79→128 · ReLU · LayerNorm",
+        nodes: 128,
+        column: 1,
+    },
+    {
+        id: "fieldproj",
+        label: "field_proj",
+        sublabel: "Linear 14→128 · prepended as token",
         nodes: 128,
         column: 1,
     },
     {
         id: "transformer",
         label: "BattleTransformer",
-        sublabel: "4 × encoder layers · 4 heads · d=128",
+        sublabel: "PosEnc · 4× (MHA 4h · FFN 512 · GELU · drop 0.1)",
         nodes: 128,
         column: 2,
     },
     {
-        id: "policy",
-        label: "PolicyHead",
-        sublabel: "Linear 128→128 · ReLU",
+        id: "movehead",
+        label: "PolicyHead · move_head",
+        sublabel: "ally tokens · Linear 128→128 · ReLU · 128→4",
         nodes: 128,
         column: 3,
     },
     {
-        id: "value",
+        id: "targethead",
+        label: "PolicyHead · target_head",
+        sublabel: "ally tokens · Linear 128→128 · ReLU · 128→2",
+        nodes: 128,
+        column: 3,
+    },
+    {
+        id: "valuehead",
         label: "ValueHead",
-        sublabel: "Linear 512→128→64 · ReLU",
+        sublabel: "concat 4×128 · Linear 512→128→64→1 · ReLU",
         nodes: 64,
         column: 3,
     },
     {
         id: "moves",
         label: "move_logits",
+        sublabel: "2 slots × 4 moves",
         role: "output",
-        nodes: 4,
+        nodes: 8,
         column: 4,
-        nodeLabels: ["Move 1", "Move 2", "Move 3", "Move 4"],
+        nodeLabels: [
+            "Ally L · Move 1",
+            "Ally L · Move 2",
+            "Ally L · Move 3",
+            "Ally L · Move 4",
+            "Ally R · Move 1",
+            "Ally R · Move 2",
+            "Ally R · Move 3",
+            "Ally R · Move 4",
+        ],
     },
     {
         id: "targets",
         label: "target_logits",
+        sublabel: "2 slots × 2 rivals",
         role: "output",
-        nodes: 2,
+        nodes: 4,
         column: 4,
-        nodeLabels: ["Rival left", "Rival right"],
+        nodeLabels: ["Ally L → Rival L", "Ally L → Rival R", "Ally R → Rival L", "Ally R → Rival R"],
     },
     {
         id: "win",
         label: "value",
+        sublabel: "win logit (pre-sigmoid)",
         role: "output",
         nodes: 1,
         column: 4,
-        nodeLabels: ["Win probability"],
+        nodeLabels: ["Win logit"],
     },
 ];
 
-// The heads branch after the transformer, so the default column-to-column
-// wiring doesn't apply: policy feeds moves/targets, value feeds the win output.
+// Explicit wiring: the field branch bypasses PokemonEncoder and joins the
+// transformer as a 5th token, and each head only feeds its own output block.
 const connections: NetworkConnection[] = [
-    { from: "state", to: "encoder" },
+    { from: "pokemon", to: "encoder" },
+    { from: "field", to: "fieldproj" },
     { from: "encoder", to: "transformer" },
-    { from: "transformer", to: "policy" },
-    { from: "transformer", to: "value" },
-    { from: "policy", to: "moves" },
-    { from: "policy", to: "targets" },
-    { from: "value", to: "win" },
+    { from: "fieldproj", to: "transformer" },
+    { from: "transformer", to: "movehead" },
+    { from: "transformer", to: "targethead" },
+    { from: "transformer", to: "valuehead" },
+    { from: "movehead", to: "moves" },
+    { from: "targethead", to: "targets" },
+    { from: "valuehead", to: "win" },
 ];
 ---
 
 <main class="grid min-h-screen place-items-center p-6">
-    {/* Wider columns so the long sublabels (Linear dims, transformer config) don't collide. */}
-    <NetworkDiagram title="VGCNetwork" layers={layers} connections={connections} options={{ columnGap: 250 }} />
+    <div class="flex w-full flex-col items-center gap-4">
+        {/* Wider columns so the full per-layer specs in the sublabels don't collide. */}
+        <NetworkDiagram title="VGCNetwork" layers={layers} connections={connections} options={{ columnGap: 320 }} />
+
+        {/* Fine print the node-link view can't express. */}
+        <ul class="max-w-3xl list-disc space-y-1 pl-5 text-sm text-(--graph-muted)">
+            <li>
+                El transformer procesa la secuencia <code>[field, ally 0, ally 1, rival 0, rival 1]</code> con
+                positional encoding sinusoidal y descarta el token de campo a la salida (5 tokens → 4).
+            </li>
+            <li>
+                <code>move_head</code> y <code>target_head</code> son dos MLPs independientes dentro de{" "}
+                <code>PolicyHead</code> y solo leen los 2 tokens aliados; <code>ValueHead</code> concatena los 4
+                tokens (512) y aplica <code>512→128→64→1</code> con ReLU entre capas.
+            </li>
+            <li>
+                Cada bloque oculto muestra su dimensión por token (<code>d=128</code>); <code>value</code> es un
+                logit, la probabilidad de victoria se obtiene tras la sigmoide.
+            </li>
+        </ul>
+    </div>
 </main>
