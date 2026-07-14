@@ -2,12 +2,15 @@
 // Static by default under `output: "static"`.
 // To make this route server-rendered on demand instead, add: export const prerender = false;
 
+import { getEntry } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
+
+const { title, description, heading, noindex } = (await getEntry("pages", "index")).data;
 ---
 
-<BaseLayout title="website" description="TODO: describe your site for search engines and social cards.">
+<BaseLayout title={title} description={description} noindex={noindex}>
     <main>
-        <h1>website</h1>
+        <h1>{heading}</h1>
         <!-- TODO: build the home page -->
     </main>
 </BaseLayout>

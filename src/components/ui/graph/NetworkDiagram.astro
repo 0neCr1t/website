@@ -1,0 +1,170 @@
+---
+// Configurable node-link diagram of a neural network. Declare the layers (and
+// optionally explicit connections / layout options) and this component computes
+// the geometry and delegates rendering to the Diagram* subcomponents.
+//
+// Minimal usage:
+//   <NetworkDiagram layers={[{ id: "in", label: "Input", role: "input", nodes: 3 }, ...]} />
+
+import {
+    computeDiagramLayout,
+    type DiagramOptions,
+    type LayerRole,
+    type NetworkConnection,
+    type NetworkLayerConfig,
+} from "../../../lib/network-diagram";
+import DiagramEdges from "./DiagramEdges.astro";
+import DiagramLayer from "./DiagramLayer.astro";
+import DiagramLegend from "./DiagramLegend.astro";
+
+interface Props {
+    layers: NetworkLayerConfig[];
+    /** Defaults to fully connecting each column with the next one. */
+    connections?: NetworkConnection[];
+    /** Geometry overrides (node radius, gaps, collapse threshold...). */
+    options?: Partial<DiagramOptions>;
+    /** Caption shown above the diagram. */
+    title?: string;
+    showLegend?: boolean;
+    legendItems?: Array<{ role: LayerRole; label: string }>;
+    /** Unique per instance when rendering several diagrams on one page. */
+    id?: string;
+    class?: string;
+}
+
+const {
+    layers,
+    connections,
+    options,
+    title,
+    showLegend = true,
+    legendItems,
+    id = "network-diagram",
+    class: className,
+} = Astro.props;
+
+const layout = computeDiagramLayout(layers, connections, options);
+const markerId = `${id}-arrow`;
+const roles: LayerRole[] = ["input", "hidden", "output"];
+---
+
+<figure
+    class:list={[
+        "nn-diagram flex w-full flex-col items-center gap-4 rounded-2xl border border-(--graph-border) bg-(--bg-primary) p-5 shadow-sm",
+        className,
+    ]}
+    style={`max-width: ${layout.width + 64}px`}
+>
+    {
+        title && (
+            <figcaption class="text-[11px] font-semibold tracking-[0.25em] text-(--graph-muted) uppercase">
+                {title}
+            </figcaption>
+        )
+    }
+
+    <div class="nn-canvas flex w-full justify-center rounded-xl p-3">
+        <svg
+            viewBox={`0 0 ${layout.width} ${layout.height}`}
+            class="h-auto w-full"
+            style={`max-width: ${layout.width}px`}
+            role="img"
+            aria-label={title ?? "Neural network diagram"}
+            data-nn-diagram
+        >
+            <defs>
+                <marker
+                    id={markerId}
+                    viewBox="0 0 8 8"
+                    refX="7"
+                    refY="4"
+                    markerWidth="7"
+                    markerHeight="7"
+                    orient="auto"
+                >
+                    <path d="M 0 0.5 L 7.5 4 L 0 7.5 Z" class="fill-(--graph-muted)"></path>
+                </marker>
+                {
+                    // LED pool under each node: role color fading out radially.
+                    roles.map(role => (
+                        <radialGradient id={`${id}-halo-${role}`}>
+                            <stop offset="0%" style={`stop-color: var(--graph-node-${role})`} stop-opacity="0.5" />
+                            <stop offset="45%" style={`stop-color: var(--graph-node-${role})`} stop-opacity="0.22" />
+                            <stop offset="100%" style={`stop-color: var(--graph-node-${role})`} stop-opacity="0" />
+                        </radialGradient>
+                    ))
+                }
+            </defs>
+
+            <DiagramEdges edges={layout.edges} />
+            {
+                layout.layers.map(layer => (
+                    <DiagramLayer
+                        layer={layer}
+                        nodeRadius={layout.nodeRadius}
+                        ioArrowLength={layout.ioArrowLength}
+                        markerId={markerId}
+                        diagramId={id}
+                    />
+                ))
+            }
+        </svg>
+    </div>
+
+    {showLegend && <DiagramLegend items={legendItems} />}
+</figure>
+
+<style is:global>
+    /* Node-editor style dotted canvas. */
+    .nn-diagram .nn-canvas {
+        background-image: radial-gradient(var(--graph-dot) 1px, transparent 1.5px);
+        background-size: 18px 18px;
+    }
+
+    /* Entry animation (scale/opacity, staggered by data-col/data-row) is driven
+       by animejs from src/scripts/network-diagram.ts; it adds `nn-ready` to the
+       svg when done, which enables the hover transition below. */
+    .nn-diagram .nn-node {
+        transform-box: fill-box;
+        transform-origin: center;
+    }
+
+    .nn-diagram svg.nn-ready .nn-node {
+        transition: transform 0.2s ease;
+    }
+
+    .nn-diagram g.nn-node:hover {
+        transform: scale(1.2);
+    }
+
+    /* Hovering a node lights up its edges (color only — width stays put) and
+       dims the rest so the connections stand out. */
+    .nn-diagram .nn-edges path {
+        transition:
+            stroke 0.15s ease,
+            opacity 0.15s ease;
+    }
+    .nn-diagram svg.nn-hovering .nn-edges path {
+        opacity: 0.25;
+    }
+    .nn-diagram svg.nn-hovering .nn-edges path.nn-edge-lit {
+        opacity: 1;
+    }
+    .nn-diagram .nn-edges path.nn-lit-input {
+        stroke: var(--graph-node-input);
+    }
+    .nn-diagram .nn-edges path.nn-lit-hidden {
+        stroke: var(--graph-node-hidden);
+    }
+    .nn-diagram .nn-edges path.nn-lit-output {
+        stroke: var(--graph-node-output);
+    }
+
+    /* The LED under each node only lights up on the dark theme. */
+    .nn-diagram .nn-halo {
+        opacity: 0;
+    }
+    body.dark .nn-diagram .nn-halo {
+        opacity: 1;
+    }
+</style>

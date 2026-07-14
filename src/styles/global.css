@@ -6,6 +6,15 @@
     --bg-secondary: #f0f0f0;
     --text-color: #1a1a1a;
     /* TODO: define your palette */
+
+    /* Network diagram (validated categorical palette: aqua/blue/yellow) */
+    --graph-node-input: #1baf7a;
+    --graph-node-hidden: #2a78d6;
+    --graph-node-output: #eda100;
+    --graph-edge: #e1e0d9;
+    --graph-muted: #71716b;
+    --graph-dot: #e6e6e2;
+    --graph-border: rgba(0, 0, 0, 0.08);
 }
 
 body.dark {
@@ -13,9 +22,17 @@ body.dark {
     --bg-secondary: #242424;
     --text-color: #f5f5f5;
     /* TODO: define your dark palette */
+
+    /* Network diagram: same hues re-stepped for the dark surface */
+    --graph-node-input: #199e70;
+    --graph-node-hidden: #3987e5;
+    --graph-node-output: #c98500;
+    --graph-edge: #33383f;
+    --graph-muted: #a1a19a;
+    --graph-dot: #2a2a2e;
+    --graph-border: rgba(255, 255, 255, 0.09);
 }
 
-/* astro-icon renders inline SVGs; keep them aligned with the text baseline. */
 svg[data-icon] {
     display: inline-block;
     vertical-align: -0.125em;
