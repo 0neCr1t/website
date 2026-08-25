@@ -11,12 +11,12 @@
         "format:check": "prettier --check ."
     },
     "dependencies": {
-        "@astrojs/node": "^11.1.0",
+        "@astrojs/node": "^11.1.4",
         "@astrojs/sitemap": "^3.7.3",
         "@tailwindcss/vite": "^4.3.3",
         "animejs": "^4.5.0",
         "astro": "^7.2.0",
-        "astro-icon": "^1.1.5",
+        "astro-icon": "^1.2.0",
         "tailwindcss": "^4.3.2"
     },
     "devDependencies": {
