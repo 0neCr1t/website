@@ -4,13 +4,11 @@
 
 import { getEntry } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Index from "../components/pages/Index.astro";
 
-const { title, description, heading, noindex } = (await getEntry("pages", "index")).data;
+const { title, description, heading, noindex, shortcuts } = (await getEntry("pages", "index")).data;
 ---
 
 <BaseLayout title={title} description={description} noindex={noindex}>
-    <main>
-        <h1>{heading}</h1>
-        <!-- TODO: build the home page -->
-    </main>
+    <Index heading={heading ?? title} shortcuts={shortcuts} />
 </BaseLayout>

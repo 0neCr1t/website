@@ -13,6 +13,16 @@ const pages = defineCollection({
         description: z.string().min(1),
         heading: z.string().min(1).optional(),
         noindex: z.boolean().optional().default(false),
+        // Links the page offers as shortcuts to other routes (labels are copy,
+        // so they live here rather than in the component).
+        shortcuts: z
+            .array(
+                z.object({
+                    href: z.string().min(1),
+                    label: z.string().min(1),
+                }),
+            )
+            .default([]),
     }),
 });
 
