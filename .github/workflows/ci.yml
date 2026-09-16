@@ -2,9 +2,9 @@ name: CI
 
 on:
     push:
-        branches: [main]
+        branches: [dev, main]
     pull_request:
-        branches: [main]
+        branches: [dev, main]
 
 # Cancela ejecuciones antiguas de la misma rama/PR cuando llega un push nuevo.
 concurrency:
