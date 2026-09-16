@@ -1,0 +1,13 @@
+---
+// Candidate v2 architectures for the design tournament. Internal — not indexed.
+
+import { getEntry } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ArquitecturasV2 from "../components/pages/ArquitecturasV2.astro";
+
+const { title, description, heading, noindex } = (await getEntry("pages", "arquitecturas-v2")).data;
+---
+
+<BaseLayout title={title} description={description} noindex={noindex}>
+    <ArquitecturasV2 heading={heading ?? title} />
+</BaseLayout>

@@ -1,0 +1,43 @@
+---
+// Color legend for the node roles. Labels are overridable per diagram.
+
+import type { LayerRole } from "../../../lib/network-diagram";
+
+interface Props {
+    items?: Array<{ role: LayerRole; label: string }>;
+}
+
+const {
+    items = [
+        { role: "input", label: "Input" },
+        { role: "hidden", label: "Hidden" },
+        { role: "output", label: "Output" },
+    ],
+} = Astro.props;
+
+const roleDot: Record<LayerRole, string> = {
+    input: "bg-(--graph-node-input)",
+    hidden: "bg-(--graph-node-hidden)",
+    output: "bg-(--graph-node-output)",
+};
+
+// Chip wash: a light tint of the role color behind each legend entry.
+const roleChip: Record<LayerRole, string> = {
+    input: "bg-[color-mix(in_srgb,var(--graph-node-input)_10%,transparent)]",
+    hidden: "bg-[color-mix(in_srgb,var(--graph-node-hidden)_10%,transparent)]",
+    output: "bg-[color-mix(in_srgb,var(--graph-node-output)_10%,transparent)]",
+};
+---
+
+<ul class="flex flex-wrap items-center justify-center gap-2">
+    {
+        items.map(item => (
+            <li
+                class={`flex items-center gap-2 rounded-full border border-(--graph-border) px-3 py-1 text-xs font-medium text-(--text-color) ${roleChip[item.role]}`}
+            >
+                <span class={`size-2 rounded-full ${roleDot[item.role]}`} aria-hidden="true" />
+                {item.label}
+            </li>
+        ))
+    }
+</ul>

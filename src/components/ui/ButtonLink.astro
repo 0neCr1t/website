@@ -1,0 +1,18 @@
+---
+// Anchor styled as a button: the `ui/` primitive for anything that looks like a
+// button but navigates. A real <button> primitive can live beside it when one
+// is actually needed — they are different elements, not a variant of each other.
+
+interface Props {
+    href: string;
+}
+
+const { href } = Astro.props;
+---
+
+<a
+    href={href}
+    class="inline-flex items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-secondary) px-5 py-3 text-sm font-medium text-(--text-color) transition-colors duration-200 hover:border-(--text-color) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--text-color)"
+>
+    <slot />
+</a>

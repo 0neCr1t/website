@@ -1,0 +1,21 @@
+---
+// Connection layer: one bezier per pair of connected visible nodes.
+// Rendered before the nodes so circles sit on top of the lines.
+
+import type { PositionedEdge } from "../../../lib/network-diagram";
+
+interface Props {
+    edges: PositionedEdge[];
+}
+
+const { edges } = Astro.props;
+
+const path = (e: PositionedEdge): string => {
+    const mx = (e.x1 + e.x2) / 2;
+    return `M ${e.x1} ${e.y1} C ${mx} ${e.y1}, ${mx} ${e.y2}, ${e.x2} ${e.y2}`;
+};
+---
+
+<g class="nn-edges stroke-(--graph-edge)" fill="none" stroke-width="1">
+    {edges.map(edge => <path d={path(edge)} data-from={edge.fromNode} data-to={edge.toNode} />)}
+</g>

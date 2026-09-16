@@ -1,11 +1,13 @@
 ---
+import { getEntry } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
-// TODO: implement the 404 page
+const { title, description, heading, noindex } = (await getEntry("pages", "404")).data;
 ---
 
-<BaseLayout title="404" description="Page not found" noindex={true}>
+<BaseLayout title={title} description={description} noindex={noindex}>
     <main>
         <!-- TODO -->
+        <h1>{heading}</h1>
     </main>
 </BaseLayout>

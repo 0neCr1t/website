@@ -1,0 +1,25 @@
+---
+// Home page composition. Still a placeholder: the only real content is the
+// shortcut row to the two network-representation pages, which goes away with
+// them (see TODO.md).
+
+import type { CollectionEntry } from "astro:content";
+import ButtonLink from "../ui/ButtonLink.astro";
+
+interface Props {
+    heading: string;
+    shortcuts: CollectionEntry<"pages">["data"]["shortcuts"];
+}
+
+const { heading, shortcuts } = Astro.props;
+---
+
+<main class="grid min-h-screen place-items-center p-6">
+    <div class="flex max-w-3xl flex-col items-center gap-8 text-center">
+        <h1 class="text-2xl font-bold text-(--text-color)">{heading}</h1>
+
+        <nav class="flex flex-wrap items-center justify-center gap-4">
+            {shortcuts.map(({ href, label }) => <ButtonLink href={href}>{label}</ButtonLink>)}
+        </nav>
+    </div>
+</main>
