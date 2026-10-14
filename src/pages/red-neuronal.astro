@@ -1,0 +1,13 @@
+---
+// Proposed doubles network (inputs, structure and bot output). Internal — not indexed.
+
+import { getEntry } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import RedNeuronal from "../components/pages/RedNeuronal.astro";
+
+const { title, description, heading, noindex } = (await getEntry("pages", "red-neuronal")).data;
+---
+
+<BaseLayout title={title} description={description} noindex={noindex}>
+    <RedNeuronal heading={heading ?? title} />
+</BaseLayout>

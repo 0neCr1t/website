@@ -1,0 +1,360 @@
+---
+// /red-neuronal: the proposed doubles network from .docs/modelo (INPUTS.txt +
+// PROPUESTA_MODELO.md). Two diagrams: the network itself (combat state →
+// representations → Battle Transformer → one head per ally slot, in parallel)
+// and the path from its probabilities to the executable order for the bot.
+// The proposal fixes no internal dimensions, so hidden layers use an
+// illustrative node count small enough to never show a "×N" marker.
+
+import type { NetworkConnection, NetworkLayerConfig } from "../../lib/network-diagram";
+import NetworkDiagram from "../ui/graph/NetworkDiagram.astro";
+
+interface Props {
+    heading: string;
+}
+
+const { heading } = Astro.props;
+
+const HIDDEN_NODES = 5;
+
+// Both slot heads emit the same hierarchical decision: action type, then
+// move + target or switch target, with Mega as a modifier.
+const slotLogitLabels = [
+    "action_type · move",
+    "action_type · switch",
+    "move_1",
+    "move_2",
+    "move_3",
+    "move_4",
+    "target · por movimiento",
+    "switch · reserva_1",
+    "switch · reserva_2",
+    "mega · no/sí",
+];
+
+const networkLayers: NetworkLayerConfig[] = [
+    {
+        id: "aliados",
+        label: "Pokémon aliados",
+        sublabel: "×4 · 2 activos + 2 reservas",
+        role: "input",
+        nodes: 8,
+        column: 0,
+        nodeLabels: [
+            "Especie · forma · tipos",
+            "Nivel · stats base",
+            "HP actual · máx · %",
+            "StatsBuff (7)",
+            "Estado · especiales",
+            "Habilidad · objeto · efectos",
+            "Movimientos ×4",
+            "Mega · debilitado · posición",
+        ],
+    },
+    {
+        id: "rivales",
+        label: "Pokémon rivales",
+        sublabel: "×6 · 2 activos + 4 reservas · solo observado",
+        role: "input",
+        nodes: 9,
+        column: 0,
+        nodeLabels: [
+            "Especie · forma · tipos",
+            "Nivel",
+            "HP % ⊕ conocido",
+            "StatsBuff (7)",
+            "Estado · especiales",
+            "Habilidad ⊕ conocida",
+            "Objeto ⊕ conocido",
+            "Movimientos revelados",
+            "Mega · debilitado · posición",
+        ],
+    },
+    {
+        id: "campo",
+        label: "Campo",
+        sublabel: "con turnos restantes",
+        role: "input",
+        nodes: 7,
+        column: 0,
+        nodeLabels: [
+            "Turno",
+            "Clima (4)",
+            "Terreno (4)",
+            "Trick Room",
+            "Tailwind aliado · rival",
+            "Pantallas propias · rivales",
+            "Trampas propias · rivales",
+        ],
+    },
+    {
+        id: "contexto",
+        label: "ContextoTurno",
+        role: "input",
+        nodes: 3,
+        column: 0,
+        nodeLabels: ["Fase del turno", "Acción forzada", "Fuente del estado"],
+    },
+    {
+        id: "memoria",
+        label: "MemoriaRival",
+        sublabel: "por identidad · se reinicia cada partida",
+        role: "input",
+        nodes: 8,
+        column: 0,
+        nodeLabels: [
+            "Identificador estable",
+            "Movs revelados · descartados",
+            "Habilidad · objeto observados",
+            "Velocidad observada",
+            "HP · estados observados",
+            "Mega observada",
+            "Turnos observados",
+            "Confianza por dato",
+        ],
+    },
+    {
+        id: "rep-pokemon",
+        label: "Representación de Pokémon",
+        sublabel: "embeddings categóricos · numéricos normalizados",
+        nodes: HIDDEN_NODES,
+        column: 1,
+    },
+    {
+        id: "rep-campo",
+        label: "Representación del campo",
+        sublabel: "Campo ⊕ ContextoTurno",
+        nodes: HIDDEN_NODES,
+        column: 1,
+    },
+    {
+        id: "rep-memoria",
+        label: "Memoria del combate",
+        sublabel: "solo hechos observados",
+        nodes: HIDDEN_NODES,
+        column: 1,
+    },
+    {
+        id: "transformer",
+        label: "Battle Transformer",
+        sublabel: "estado común",
+        nodes: HIDDEN_NODES,
+        column: 2,
+    },
+    {
+        id: "head-izq",
+        label: "Cabeza slot izquierdo",
+        sublabel: "tipo → movimiento + objetivo | reserva",
+        nodes: HIDDEN_NODES,
+        column: 3,
+    },
+    {
+        id: "head-der",
+        label: "Cabeza slot derecho",
+        sublabel: "tipo → movimiento + objetivo | reserva",
+        nodes: HIDDEN_NODES,
+        column: 3,
+    },
+    {
+        id: "value-head",
+        label: "ValueHead",
+        sublabel: "cabeza separada",
+        nodes: HIDDEN_NODES,
+        column: 3,
+    },
+    {
+        id: "aux-head",
+        label: "Cabezas auxiliares",
+        sublabel: "opcionales · análisis",
+        nodes: HIDDEN_NODES,
+        column: 3,
+    },
+    {
+        id: "out-izq",
+        label: "Slot izquierdo",
+        sublabel: "logits",
+        role: "output",
+        nodes: slotLogitLabels.length,
+        maxVisibleNodes: slotLogitLabels.length,
+        column: 4,
+        nodeLabels: slotLogitLabels,
+    },
+    {
+        id: "out-der",
+        label: "Slot derecho",
+        sublabel: "logits",
+        role: "output",
+        nodes: slotLogitLabels.length,
+        maxVisibleNodes: slotLogitLabels.length,
+        column: 4,
+        nodeLabels: slotLogitLabels,
+    },
+    {
+        id: "out-value",
+        label: "value",
+        role: "output",
+        nodes: 1,
+        column: 4,
+        nodeLabels: ["Probabilidad de victoria"],
+    },
+    {
+        id: "out-aux",
+        label: "Auxiliares",
+        role: "output",
+        nodes: 4,
+        column: 4,
+        nodeLabels: [
+            "slot_importance · izq",
+            "slot_importance · der",
+            "action_confidence · izq",
+            "action_confidence · der",
+        ],
+    },
+];
+
+// Each slot head reads only the shared state: neither slot's decision feeds the other.
+const networkConnections: NetworkConnection[] = [
+    { from: "aliados", to: "rep-pokemon" },
+    { from: "rivales", to: "rep-pokemon" },
+    { from: "campo", to: "rep-campo" },
+    { from: "contexto", to: "rep-campo" },
+    { from: "memoria", to: "rep-memoria" },
+    { from: "rep-pokemon", to: "transformer" },
+    { from: "rep-campo", to: "transformer" },
+    { from: "rep-memoria", to: "transformer" },
+    { from: "transformer", to: "head-izq" },
+    { from: "transformer", to: "head-der" },
+    { from: "transformer", to: "value-head" },
+    { from: "transformer", to: "aux-head" },
+    { from: "head-izq", to: "out-izq" },
+    { from: "head-der", to: "out-der" },
+    { from: "value-head", to: "out-value" },
+    { from: "aux-head", to: "out-aux" },
+];
+
+// The engine's masks are rules, not predictions: they join the network output
+// in the selector, which is what turns probabilities into a verifiable order.
+const botLayers: NetworkLayerConfig[] = [
+    {
+        id: "probabilidades",
+        label: "Red neuronal",
+        sublabel: "probabilidades por slot",
+        role: "input",
+        nodes: 4,
+        column: 0,
+        nodeLabels: ["Movimientos", "Objetivos", "Cambios", "Mega Evolución"],
+    },
+    {
+        id: "mascaras",
+        label: "Máscaras del motor",
+        sublabel: "reglas deterministas",
+        role: "input",
+        nodes: 6,
+        column: 0,
+        nodeLabels: [
+            "Movimiento disponible",
+            "Objetivo válido por movimiento",
+            "Reserva disponible",
+            "Mega Evolución disponible",
+            "Acción no bloqueada por estado",
+            "Combinación legal entre slots",
+        ],
+    },
+    {
+        id: "selector",
+        label: "Selector",
+        sublabel: "ilegal → excluido antes del softmax",
+        nodes: HIDDEN_NODES,
+        column: 1,
+    },
+    {
+        id: "orden",
+        label: "Orden ejecutable",
+        sublabel: "Decision",
+        role: "output",
+        nodes: 7,
+        column: 2,
+        nodeLabels: [
+            "IdDecision",
+            "Turno",
+            "EstadoOrigen",
+            "Acción slot izquierdo",
+            "Acción slot derecho",
+            "Confianza",
+            "ValorEstimado",
+        ],
+    },
+];
+---
+
+<main class="flex min-h-screen flex-col items-center gap-12 p-6">
+    <h1 class="text-2xl font-bold text-(--text-color)">{heading}</h1>
+
+    <section class="flex w-full flex-col items-center gap-4">
+        <NetworkDiagram
+            id="red-propuesta"
+            title="Red propuesta · combate doble"
+            layers={networkLayers}
+            connections={networkConnections}
+            options={{ columnGap: 300, nodeGap: 26, layerGap: 52 }}
+            legendItems={[
+                { role: "input", label: "Estado observable" },
+                { role: "hidden", label: "Red" },
+                { role: "output", label: "Salidas" },
+            ]}
+        />
+        <ul class="max-w-3xl list-disc space-y-1 pl-5 text-sm text-(--graph-muted)">
+            <li>
+                Las dos cabezas de slot se calculan <strong>en paralelo</strong> desde el mismo estado: la red no decide
+                primero un slot para usarlo como input del otro.
+            </li>
+            <li>
+                Acción jerárquica: tipo (movimiento o cambio), seguido de movimiento + objetivo o de reserva. La Mega
+                Evolución es un modificador de la acción, no una acción independiente.
+            </li>
+            <li>
+                Del rival solo entra lo observado. Lo desconocido va como <code>null</code> con su flag de conocido,
+                nunca como cero. Especies, tipos, habilidades, objetos y movimientos pasan a embeddings, y los numéricos
+                se normalizan (StatsBuff de −6..+6 a −1..+1).
+            </li>
+            <li>
+                <code>slot_importance</code> y <code>action_confidence</code> son opcionales y solo sirven para
+                analizar. Las dimensiones internas aún no están definidas: los nodos de las capas ocultas son
+                ilustrativos.
+            </li>
+            <li>
+                Fase 2 y posteriores, fuera del diagrama: historial de turnos, orden de velocidad, efectos de
+                habilidades y objetos, y priors competitivos (siempre por debajo de lo observado).
+            </li>
+        </ul>
+    </section>
+
+    <section class="flex w-full flex-col items-center gap-4">
+        <NetworkDiagram
+            id="salida-bot"
+            title="Salida para el bot"
+            layers={botLayers}
+            options={{ columnGap: 300 }}
+            legendItems={[
+                { role: "input", label: "Entradas del selector" },
+                { role: "hidden", label: "Selector" },
+                { role: "output", label: "Orden para el bot" },
+            ]}
+        />
+        <ul class="max-w-3xl list-disc space-y-1 pl-5 text-sm text-(--graph-muted)">
+            <li>
+                Cada acción lleva <code>Slot</code>, <code>Tipo</code>, <code>Movimiento</code>,{" "}
+                <code>ModoObjetivo</code>, <code>Objetivos</code>, <code>PokémonCambio</code> y{" "}
+                <code>MegaEvolucionar</code>.
+            </li>
+            <li>
+                Antes de ejecutar, el bot comprueba que <code>Turno</code> y <code>EstadoOrigen</code> siguen siendo
+                válidos y vuelve a aplicar las máscaras. Si el estado cambió, descarta la decisión y pide otra.
+            </li>
+            <li>
+                Los logits completos, las acciones descartadas, el daño estimado y los priors van al registro de
+                depuración, no a la orden.
+            </li>
+        </ul>
+    </section>
+</main>

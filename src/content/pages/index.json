@@ -2,8 +2,5 @@
     "title": "website",
     "description": "TODO: describe your site for search engines and social cards.",
     "heading": "website",
-    "shortcuts": [
-        { "href": "/prueba-graph", "label": "Diagrama de red VGC" },
-        { "href": "/arquitecturas-v2", "label": "Arquitecturas candidatas v2" }
-    ]
+    "shortcuts": [{ "href": "/red-neuronal", "label": "Red neuronal propuesta" }]
 }
