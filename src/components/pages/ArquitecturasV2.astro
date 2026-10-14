@@ -358,13 +358,14 @@ const designCConnections: NetworkConnection[] = [
         />
         <ul class="max-w-3xl list-disc space-y-1 pl-5 text-sm text-(--graph-muted)">
             <li>
-                Un único MLP puntúa <em>cada acción legal</em> construida dinámicamente (movimiento×target, variantes con
-                Tera y switches): el nº de logits cambia por turno y una acción ilegal jamás entra en la distribución.
+                Un único MLP puntúa <em>cada acción legal</em> construida dinámicamente (movimiento×target, variantes
+                con Tera y switches): el nº de logits cambia por turno y una acción ilegal jamás entra en la
+                distribución.
             </li>
             <li>
                 Autoregresivo: la arista <code>slot 1 → slot 2</code> transporta la codificación de la acción{" "}
-                <em>elegida</em> (argmax/muestreo; en entrenamiento, la real del replay). Captura coordinación: no doble Protect,
-                no sobrematar al mismo rival.
+                <em>elegida</em> (argmax/muestreo; en entrenamiento, la real del replay). Captura coordinación: no doble
+                Protect, no sobrematar al mismo rival.
             </li>
             <li>
                 El movimiento se identifica por su embedding, no por posición de slot — generaliza entre Pokémon. Es la
@@ -416,8 +417,8 @@ const designCConnections: NetworkConnection[] = [
                 y tokens de banquillo — conservan identidad (como A) sin pagar la autoregresión.
             </li>
             <li>
-                <code>TargetHead</code> se condiciona al movimiento elegido concatenando su embedding (la jerarquía no se
-                dibuja entre columnas: ambos heads cuelgan del tronco).
+                <code>TargetHead</code> se condiciona al movimiento elegido concatenando su embedding (la jerarquía no
+                se dibuja entre columnas: ambos heads cuelgan del tronco).
             </li>
         </ul>
     </section>
@@ -426,8 +427,8 @@ const designCConnections: NetworkConnection[] = [
         <h2 class="text-lg font-semibold text-(--text-color)">Cómo leerlos de cara al torneo</h2>
         <ul class="list-disc space-y-1 pl-5 text-sm text-(--graph-muted)">
             <li>
-                <strong>A</strong> es la apuesta con mejor techo (identidad + legalidad + coordinación) y la más costosa de
-                implementar; <strong>B</strong> es la base simple que todo torneo necesita como control;
+                <strong>A</strong> es la apuesta con mejor techo (identidad + legalidad + coordinación) y la más costosa
+                de implementar; <strong>B</strong> es la base simple que todo torneo necesita como control;
                 <strong>C</strong> es el punto intermedio: identidad de movimientos sin autoregresión.
             </li>
             <li>

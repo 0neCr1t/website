@@ -27,17 +27,15 @@ const roleFill: Record<LayerRole, string> = {
 };
 ---
 
-{
-    ellipsis ? (
-        <g class="nn-node fill-(--graph-muted)" data-col={column} data-row={row}>
-            <circle cx={cx} cy={cy - 6} r={1.6} />
-            <circle cx={cx} cy={cy} r={1.6} />
-            <circle cx={cx} cy={cy + 6} r={1.6} />
-        </g>
-    ) : (
-        <g class="nn-node" data-col={column} data-row={row} data-node={`${layerId}:${row}`} data-role={role}>
-            <circle class="nn-halo" cx={cx} cy={cy} r={r * 2.4} fill={`url(#${diagramId}-halo-${role})`} />
-            <circle cx={cx} cy={cy} r={r} class={roleFill[role]} />
-        </g>
-    )
-}
+{ellipsis ? (
+    <g class="nn-node fill-(--graph-muted)" data-col={column} data-row={row}>
+        <circle cx={cx} cy={cy - 6} r={1.6} />
+        <circle cx={cx} cy={cy} r={1.6} />
+        <circle cx={cx} cy={cy + 6} r={1.6} />
+    </g>
+) : (
+    <g class="nn-node" data-col={column} data-row={row} data-node={`${layerId}:${row}`} data-role={role}>
+        <circle class="nn-halo" cx={cx} cy={cy} r={r * 2.4} fill={`url(#${diagramId}-halo-${role})`} />
+        <circle cx={cx} cy={cy} r={r} class={roleFill[role]} />
+    </g>
+)}

@@ -17,5 +17,7 @@ const path = (e: PositionedEdge): string => {
 ---
 
 <g class="nn-edges stroke-(--graph-edge)" fill="none" stroke-width="1">
-    {edges.map(edge => <path d={path(edge)} data-from={edge.fromNode} data-to={edge.toNode} />)}
+    {edges.map(edge => (
+        <path d={path(edge)} data-from={edge.fromNode} data-to={edge.toNode} />
+    ))}
 </g>

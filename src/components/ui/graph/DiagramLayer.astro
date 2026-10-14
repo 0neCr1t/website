@@ -26,36 +26,32 @@ const pillHeight = 22;
 ---
 
 <g>
-    {
-        layer.nodes.map((node, row) => (
-            <DiagramNode
-                cx={node.cx}
-                cy={node.cy}
-                r={nodeRadius}
-                role={layer.role}
-                ellipsis={node.ellipsis}
-                diagramId={diagramId}
-                layerId={layer.id}
-                column={layer.columnRank}
-                row={row}
-            />
-        ))
-    }
+    {layer.nodes.map((node, row) => (
+        <DiagramNode
+            cx={node.cx}
+            cy={node.cy}
+            r={nodeRadius}
+            role={layer.role}
+            ellipsis={node.ellipsis}
+            diagramId={diagramId}
+            layerId={layer.id}
+            column={layer.columnRank}
+            row={row}
+        />
+    ))}
 
     <g class="nn-annotation" data-col={layer.columnRank}>
-        {
-            annotated.map(node => (
-                <DiagramIOLabel
-                    cx={node.cx}
-                    cy={node.cy}
-                    nodeRadius={nodeRadius}
-                    arrowLength={ioArrowLength}
-                    direction={layer.role === "output" ? "out" : "in"}
-                    label={node.label!}
-                    markerId={markerId}
-                />
-            ))
-        }
+        {annotated.map(node => (
+            <DiagramIOLabel
+                cx={node.cx}
+                cy={node.cy}
+                nodeRadius={nodeRadius}
+                arrowLength={ioArrowLength}
+                direction={layer.role === "output" ? "out" : "in"}
+                label={node.label!}
+                markerId={markerId}
+            />
+        ))}
 
         <rect
             x={layer.labelX - pillWidth / 2}
@@ -64,7 +60,8 @@ const pillHeight = 22;
             height={pillHeight}
             rx={pillHeight / 2}
             class="fill-(--bg-primary) stroke-(--graph-border)"
-            stroke-width="1"></rect>
+            stroke-width="1"
+        ></rect>
         <text
             x={layer.labelX}
             y={layer.labelY}
@@ -74,17 +71,15 @@ const pillHeight = 22;
             {layer.label}
             {layer.collapsed && <tspan class="fill-(--graph-muted) font-medium">&nbsp;×{layer.totalNodes}</tspan>}
         </text>
-        {
-            layer.sublabel && (
-                <text
-                    x={layer.labelX}
-                    y={layer.labelY + 19}
-                    text-anchor="middle"
-                    class="fill-(--graph-muted) font-mono text-[10px]"
-                >
-                    {layer.sublabel}
-                </text>
-            )
-        }
+        {layer.sublabel && (
+            <text
+                x={layer.labelX}
+                y={layer.labelY + 19}
+                text-anchor="middle"
+                class="fill-(--graph-muted) font-mono text-[10px]"
+            >
+                {layer.sublabel}
+            </text>
+        )}
     </g>
 </g>
