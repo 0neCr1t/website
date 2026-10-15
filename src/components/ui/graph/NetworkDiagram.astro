@@ -55,13 +55,11 @@ const roles: LayerRole[] = ["input", "hidden", "output"];
     ]}
     style={`max-width: ${layout.width + 64}px`}
 >
-    {
-        title && (
-            <figcaption class="text-[11px] font-semibold tracking-[0.25em] text-(--graph-muted) uppercase">
-                {title}
-            </figcaption>
-        )
-    }
+    {title && (
+        <figcaption class="text-[11px] font-semibold tracking-[0.25em] text-(--graph-muted) uppercase">
+            {title}
+        </figcaption>
+    )}
 
     <div class="nn-canvas flex w-full justify-center rounded-xl p-3">
         <svg
@@ -97,17 +95,15 @@ const roles: LayerRole[] = ["input", "hidden", "output"];
             </defs>
 
             <DiagramEdges edges={layout.edges} />
-            {
-                layout.layers.map(layer => (
-                    <DiagramLayer
-                        layer={layer}
-                        nodeRadius={layout.nodeRadius}
-                        ioArrowLength={layout.ioArrowLength}
-                        markerId={markerId}
-                        diagramId={id}
-                    />
-                ))
-            }
+            {layout.layers.map(layer => (
+                <DiagramLayer
+                    layer={layer}
+                    nodeRadius={layout.nodeRadius}
+                    ioArrowLength={layout.ioArrowLength}
+                    markerId={markerId}
+                    diagramId={id}
+                />
+            ))}
         </svg>
     </div>
 

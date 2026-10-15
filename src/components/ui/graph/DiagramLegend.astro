@@ -30,14 +30,12 @@ const roleChip: Record<LayerRole, string> = {
 ---
 
 <ul class="flex flex-wrap items-center justify-center gap-2">
-    {
-        items.map(item => (
-            <li
-                class={`flex items-center gap-2 rounded-full border border-(--graph-border) px-3 py-1 text-xs font-medium text-(--text-color) ${roleChip[item.role]}`}
-            >
-                <span class={`size-2 rounded-full ${roleDot[item.role]}`} aria-hidden="true" />
-                {item.label}
-            </li>
-        ))
-    }
+    {items.map(item => (
+        <li
+            class={`flex items-center gap-2 rounded-full border border-(--graph-border) px-3 py-1 text-xs font-medium text-(--text-color) ${roleChip[item.role]}`}
+        >
+            <span class={`size-2 rounded-full ${roleDot[item.role]}`} aria-hidden="true" />
+            {item.label}
+        </li>
+    ))}
 </ul>
